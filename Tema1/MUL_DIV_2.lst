@@ -1,0 +1,29 @@
+     1                                  bits 32 ;assembling for the 32 bits architecture
+     2                                  ; the start label will be the entry point in the program
+     3                                  global  start 
+     4                                  
+     5                                  extern  exit ; we inform the assembler that the exit symbol is foreign, i.e. it exists even if we won't be defining it
+     6                                  
+     7                                  import  exit msvcrt.dll; exit is a function that ends the process, it is defined in msvcrt.dll
+     8                                          ; msvcrt.dll contains exit, printf and all the other important C-runtime functions
+     9                                  segment  data use32 class=data ; the data segment where the variables are declared 
+    10 00000000 DC                      	b  db 0DCh ; 220
+    11 00000001 03                      	c  db 3h   ; 3
+    12 00000002 5601                        e  dw 156h ; 342
+    13 00000004 0401                        g  dw 104h ; 260
+    14                                      ;(e+g-2*b)/c    / (342+260-2*220)/3 = (602-440)/3 = 162/3 = 54 = 0036h
+    15                                  segment  code use32 class=code ; code segment
+    16                                  start: 
+    17 00000000 B102                    mov CL,2h ;CX = 0002
+    18 00000002 66B80000                mov AX,0h ;AX = 0000
+    19 00000006 A0[00000000]            mov AL,[b];AX = 00DC
+    20 0000000B F6E1                    mul CL    ;AX = 01B8   / AX = 2*b
+    21 0000000D 668B1D[02000000]        mov BX,[e];BX = 0156
+    22 00000014 66031D[04000000]        add BX,[g];BX = 025A   / BX = e+g
+    23 0000001B 6619C3                  sbb BX,AX ;BX = 00A2   / BX = e+g - 2*b
+    24 0000001E 6689D8                  mov AX,BX ;AX = 00A2   / AX = e+g - 2*b
+    25 00000021 8A0D[01000000]          mov CL,[c];CX = 0003
+    26 00000027 F6F1                    div CL    ;AH = 00 ( rest = 0 )  AL = 36 ( cat = 54 )  / AX = 0036
+    27                                  
+    28                                  
+    29                                  

@@ -1,0 +1,65 @@
+     1                                  bits 32 ;assembling for the 32 bits architecture
+     2                                  ; the start label will be the entry point in the program
+     3                                  global  start 
+     4                                  
+     5                                  extern  exit ; we inform the assembler that the exit symbol is foreign, i.e. it exists even if we won't be defining it
+     6                                  
+     7                                  import  exit msvcrt.dll; exit is a function that ends the process, it is defined in msvcrt.dll
+     8                                          ; msvcrt.dll contains exit, printf and all the other important C-runtime functions
+     9                                  segment  data use32 class=data ; the data segment where the variables are declared 
+    10 00000000 0A00                    	a  dw 10    ; Ah
+    11 00000002 14                      	b  db 20    ; 14h
+    12 00000003 FEFF                        c  dw -2    ; FEh
+    13 00000005 C6FEFFFF                    d  dd -314  ; FEC6h
+    14 00000009 0801000000000000            x  dq 264   ; 108h
+    15                                      ;(a*a+b/c-1)/(b+c)+d-x /  (10*10+20/-2-1)/(20+ -2)+ -314-264 = (100-10-1)/(18) -578 = 89/18 - 578 = -574   FDC2h
+    16                                  segment  code use32 class=code ; code segment
+    17                                  start: 
+    18 00000000 66A1[00000000]          mov AX,[a]      ;AX=000A
+    19 00000006 BA00000000              mov EDX,0h      ;EDX=0000 0000
+    20 0000000B 98                      cwde            ;EAX=0000 000A
+    21 0000000C 66F7E8                  imul AX         ;DX=0000 AX=0064
+    22 0000000F 89D3                    mov EBX,EDX     ;EBX=0000 0000
+    23 00000011 89C1                    mov ECX,EAX     ;ECX=0000 0064    EBX:ECX = a*a
+    24 00000013 B800000000              mov EAX,0h      ;EAX=0000 0000
+    25 00000018 BA00000000              mov EDX,0h      ;EDX=0000 0000
+    26 0000001D A0[02000000]            mov AL,[b]      ;EAX=0000 0014
+    27 00000022 6698                    cbw             ;EAX=0000 0014
+    28 00000024 6699                    cwd             ;EAX=0000 0014
+    29 00000026 668B35[03000000]        mov SI,[c]      ;SI=FFFE
+    30 0000002D 66F7FE                  idiv SI         ;AX=FFF6 AX= b/c  
+    31 00000030 98                      cwde            ;EAX=FFFF FFF6
+    32 00000031 99                      cdq             ;EDX=FFFF FFFF
+    33 00000032 48                      dec EAX         ;EAX=FFFF FFF5
+    34 00000033 01C1                    add ECX,EAX     ;ECX=0000 0059
+    35 00000035 11D3                    adc EBX,EDX     ;EBX=0000 0000    EBX:ECX = (a*a+b/c-1)  
+    36 00000037 BA00000000              mov EDX,0h      ;EDX=0000 0000
+    37 0000003C B800000000              mov EAX,0h      ;EAX=0000 0000
+    38 00000041 A0[02000000]            mov AL,[b]      ;EAX=0000 0014
+    39 00000046 6698                    cbw             ;EAX=0000 0014
+    40 00000048 98                      cwde            ;EAX=0000 0014
+    41 00000049 89C2                    mov EDX,EAX     ;EDX=0000 0014
+    42 0000004B B800000000              mov EAX,0h      ;EAX=0000 0000
+    43 00000050 66A1[03000000]          mov AX,[c]      ;EAX=0000 FFFE
+    44 00000056 98                      cwde            ;EAX=FFFF FFFE
+    45 00000057 01C2                    add EDX,EAX     ;EDX=0000 0012    EDX = b+c   
+    46 00000059 89C8                    mov EAX,ECX     ;EAX=0000 0059
+    47 0000005B 89D1                    mov ECX,EDX     ;ECX=0000 0012
+    48 0000005D 89DA                    mov EDX,EBX     ;EDX=0000 0000    EDX:EAX = (a*a+b/c-1)   ECX = b+c
+    49 0000005F F7F9                    idiv ECX        ;EAX=0000 0004    EAX = (a*a+b/c-1)/(b+c)
+    50 00000061 99                      cdq             ;EDX=0000 0000
+    51 00000062 BB00000000              mov EBX,0h      ;EBX=0000 0000
+    52 00000067 B900000000              mov ECX,0h      ;ECX=0000 0000
+    53 0000006C 89D3                    mov EBX,EDX     ;EBX=0000 0000
+    54 0000006E 89C1                    mov ECX,EAX     ;ECX=0000 0004    EBX:ECX = (a*a+b/c-1)/(b+c)
+    55 00000070 B800000000              mov EAX,0h      ;EAX=0000 0000
+    56 00000075 BA00000000              mov EDX,0h      ;EDX=0000 0000
+    57 0000007A 030D[05000000]          add ECX,[d]     ;ECX=FFFF FECA    
+    58 00000080 7301                    jnc here
+    59 00000082 43                      inc EBX
+    60                                  here:
+    61 00000083 F8                      clc             ;EBX:ECX = (a*a+b/c-1)/(b+c)+d
+    62 00000084 A1[09000000]            mov EAX,dword[x];EAX=0000 0108
+    63 00000089 8B15[0D000000]          mov EDX,dword[x+4];EDX=0000 0000
+    64 0000008F 29C1                    sub ECX,EAX     ;ECX=FFFF FDC2
+    65 00000091 19D3                    sbb EBX,EDX     ;EBX=0000 0000

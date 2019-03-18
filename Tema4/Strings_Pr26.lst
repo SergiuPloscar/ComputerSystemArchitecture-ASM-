@@ -1,0 +1,44 @@
+     1                                  bits 32 
+     2                                  global start        
+     3                                  extern exit ; tell nasm that exit exists even if we won't be defining it
+     4                                  import exit msvcrt.dll ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     5                                  
+     6                                  ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+     7                                  ; our data is declared here (the variables needed by our program)
+     8                                  segment data use32 class=data
+     9 00000000 785634124D3C2B1A76-     	s dd 12345678h, 1A2B3C4Dh, 0FE98DC76h      ; we need the high bytes of the low words of these double words, that are multiples of 10
+     9 00000009 DC98FE             
+    10                                      l equ ($-s)/4                              ; We calculate how many double words we have
+    11 0000000C 00<rept>                    d times l db 0                             ; We define that many available positions to store the result in
+    12 0000000F 0A                          ten db 10                                  ; So we can check divisibility to 10
+    13                                      
+    14                                      
+    15                                  segment  code use32 class=code ; code segment
+    16                                  start: 
+    17 00000000 BE[00000000]            mov ESI,s                                      ; We select the string to be parsed
+    18 00000005 FC                      cld                                            ; We select the direction to be left - > right
+    19 00000006 B903000000              mov ECX,l                                      ; We will loop as many times as we have doublewords
+    20 0000000B BF[0C000000]            mov EDI,d                                      ; Our resulting string will be put in d
+    21                                  repeta:
+    22 00000010 66AD                        lodsw                                      ; We take the lower word of the current doubleword (It will be put in AX) 
+    23 00000012 46                          inc ESI                                    ; We move on to the next double word by incrementing ESI twice                     
+    24 00000013 46                          inc ESI
+    25 00000014 66C1E808                    shr AX,8                                   ; By shifting to the right we put AH into AL 
+    26 00000018 88C3                        mov BL,AL                                  ; We keep a copy of our byte so we don't lose it after the divisibility check|  
+    27 0000001A F635[0F000000]              div byte[ten]                              ; We divide by 10
+    28 00000020 88D8                        mov AL,BL                                  ; We restore our byte
+    29 00000022 80FC00                      cmp AH,0                                   ; If AH is 0 then our byte is divisible by 10 
+    30 00000025 7501                        jnz nonmultiplu                            ; If AH is != 0 then we skip ahead to the next doubleword
+    31 00000027 AA                          stosb                                      ; Reaching this instructions means our byte is divisible so we add it to the string d
+    32                                      nonmultiplu:
+    33 00000028 E2E6                    loop repeta                                    ; At the end of this loop, the string d will be loaded with the result 
+    34 0000002A B800000000              mov EAX,0                                      ; All the instructions from here on are only for verification
+    35 0000002F B903000000              mov ECX,l                                      ; What we do is we parse d and we load each byte in it to check if everything is correct
+    36 00000034 BE[0C000000]            mov ESI,d
+    37                                  verificare:
+    38 00000039 AC                      lodsb
+    39 0000003A E2FD                    loop verificare
+    40                                  
+    41                                  
+    42                                      
+    43                                      

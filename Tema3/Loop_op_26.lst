@@ -1,0 +1,47 @@
+     1                                  bits 32 
+     2                                  global start        
+     3                                  extern exit,printf ; tell nasm that exit exists even if we won't be defining it
+     4                                  import exit msvcrt.dll ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     5                                  import printf msvcrt.dll
+     6                                  ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+     7                                  ; our data is declared here (the variables needed by our program)
+     8                                  segment data use32 class=data
+     9 00000000 0C0D0509150807          	s db 12, 13, 5, 9, 21, 8 , 7      ; We need the max of the numbers in even positions and min of the numbers in odd positions ;
+    10                                                                        ; Final result should be 21, 8                
+    11                                      l equ $-s                         ; Computes the length of the string, in this case l=7
+    12 00000007 00<rept>                    d times 2 db 0                    ; Creates two bytes where we will store the max and min
+    13                                  segment  code use32 class=code ; code segment
+    14                                  start: 
+    15 00000000 B907000000              mov ECX,l                             ; Preparing for the loop
+    16 00000005 BE00000000              mov ESI,0                             ; We use ESI to select which element in the string we need
+    17 0000000A 8A1D[00000000]          mov BL,[s]                            ; Using BL to move the first element of the string into the min spot
+    18 00000010 881D[08000000]          mov [d+1],BL                          ; We do this because we are working with unsigned numbers and since we start the min var with 0 it
+    19                                                                        ; wont change otherwise. We don't do it for max because any unsigned will be greater than 0.
+    20                                                                        ; if there is none greater, 0 is fine
+    21 00000016 B300                    mov BL,0                              ; We use BL to check whether we are on an even ( 0 ) or odd ( 1 ) position in the string
+    22 00000018 E330                    jecxz Sfarsit                         ; We don't want to loop if ECX != 0
+    23                                          Repeta:                       ; Loop starting point
+    24 0000001A 8A86[00000000]                      mov AL,[s+ESI]            ; We take the current number from the string 
+    25 00000020 80FB00                              cmp BL,0                  ; We check if we are at an odd or even position
+    26 00000023 7511                                JNE Impare                ; If it is even we continue, otherwise we jump to Impare
+    27 00000025 3A05[07000000]                          cmp AL,[d]            ; We compare our number with max since we are on the even route
+    28 0000002B 7605                                    JBE Max               ; If our number is lower or equal to max we jump to Max, otherwise if it is greater we update max
+    29 0000002D A2[07000000]                                mov [d],AL        ; This is us updating max 
+    30                                                  Max:
+    31 00000032 FEC3                                        inc BL            ; We know that the next number will be on an odd position
+    32 00000034 EB11                                        JMP SfarsitOp     ; We have done everything with our current number
+    33                                              Impare:                   ; This is the odd route
+    34 00000036 3A05[08000000]                          cmp AL,[d+1]          ; We compare our number with min since we are on the odd route
+    35 0000003C 7D05                                    JGE Min               ; If our number is greater or equal to min we jump to Min, otherwise if it is lower we update min
+    36 0000003E A2[08000000]                                mov [d+1],AL      ; This is us updating min
+    37                                                  Min:    
+    38 00000043 FECB                                        dec BL            ; We know that the next number will be on an even position
+    39 00000045 EB00                                        JMP SfarsitOp     ; We have done everything with our current number
+    40                                          SfarsitOp:
+    41 00000047 46                              inc ESI                       ; We get ready to go to the next number
+    42 00000048 E2D0                            loop Repeta                   ; We loop, doing the same operations until we run out of numbers
+    43                                       Sfarsit:
+    44 0000004A 66B80000                mov AX,0
+    45 0000004E 66BB0000                mov BX,0                              ; Just used to check the result
+    46 00000052 A0[07000000]            mov AL,[d]                            ; AL= 15h which is 21, so it is correct
+    47 00000057 8A1D[08000000]          mov BL,[d+1]                          ; BL= 08h which is 8, so it is correct

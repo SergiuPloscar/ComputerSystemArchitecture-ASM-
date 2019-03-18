@@ -1,0 +1,31 @@
+     1                                  bits 32 ;assembling for the 32 bits architecture
+     2                                  ; the start label will be the entry point in the program
+     3                                  global  start 
+     4                                  
+     5                                  extern  exit ; we inform the assembler that the exit symbol is foreign, i.e. it exists even if we won't be defining it
+     6                                  
+     7                                  import  exit msvcrt.dll; exit is a function that ends the process, it is defined in msvcrt.dll
+     8                                          ; msvcrt.dll contains exit, printf and all the other important C-runtime functions
+     9                                  segment  data use32 class=data ; the data segment where the variables are declared 
+    10 00000000 2EE68D46                	T  dd 468DE62Eh  ;                 0100 0110 1000 1101 1110 0110 0010 1110
+    11 00000004 897416BA                    R  dd 0BA167489h ;                 1011 1010 0001 0110 0111 0100 1000 1001
+    12 00000008 00000000                    Q  dd 0h ; the result should be :  0100 1000 1001 1011 1001 0010 1111 1001
+    13                                      
+    14                                  segment  code use32 class=code ; code segment
+    15                                  start: 
+    16 00000000 B800000000              mov EAX,0h                                ; EAX = 00000000 (we want to use EAX to form our required number)
+    17 00000005 8B1D[00000000]          mov EBX,[T]                               ; EBX = 468DE62E
+    18 0000000B 81E300FC0100            and EBX,00000000000000011111110000000000b ; EBX = 0001E400 = 0000 0000 0000 0001 1110 0100 0000 0000 we keep the bits from 10-16 of T
+    19 00000011 09D8                    or EAX,EBX                                ; EAX = 0001E400 = 0000 0000 0000 0001 1110 0100 0000 0000
+    20 00000013 B10A                    mov CL,10                                 ; We move in CL the number of shifts we need  
+    21 00000015 D3E8                    shr EAX,CL                                ; EAX = 00000079 = 0000 0000 0000 0000 0000 0000 0111 1001  first part of number
+    22 00000017 8B1D[00000000]          mov EBX,[T]                               ; EBX = 468DE62E = 0100 0110 1000 1101 1110 0110 0010 1110  
+    23 0000001D 8B15[04000000]          mov EDX,[R]                               ; EDX = BA167489 = 1011 1010 0001 0110 0111 0100 1000 1001 and we use XOR and get
+    24 00000023 31D3                    xor EBX,EDX                               ; EBX = FC9B92A7 = 1111 1100 1001 1011 1001 0010 1010 0111
+    25 00000025 81E380FFFF01            and EBX,00000001111111111111111110000000b ; EBX = 009B9280 = 0000 0000 1001 1011 1001 0010 1000 0000 we keep the bits from 7-24 of T xor R
+    26 0000002B 09D8                    or EAX,EBX                                ; EAX = 009B92F9 = 0000 0000 1001 1011 1001 0010 1111 1001  second part of number
+    27 0000002D 81E2E00F0000            and EDX,00000000000000000000111111100000b ; EDX = 00000480 = 0000 0000 0000 0000 0000 0100 1000 0000 we keep the bits from 5-11 of R
+    28 00000033 B114                    mov CL,20                                 ; We move in CL the number of shifts we need
+    29 00000035 D3E2                    shl EDX,CL                                ; EDX = 48000000 = 0100 1000 0000 0000 0000 0000 0000 0000 
+    30 00000037 09D0                    or EAX,EDX                                ; EAX = 489B92F9 = 0100 1000 1001 1011 1001 0010 1111 1001 the final result
+    31 00000039 A3[08000000]            mov [Q],EAX                               ; So we just put it in Q because we know it is final and correct

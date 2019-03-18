@@ -1,0 +1,39 @@
+     1                                  bits 32 ;assembling for the 32 bits architecture
+     2                                  ; the start label will be the entry point in the program
+     3                                  global  start 
+     4                                  
+     5                                  extern  exit ; we inform the assembler that the exit symbol is foreign, i.e. it exists even if we won't be defining it
+     6                                  
+     7                                  import  exit msvcrt.dll; exit is a function that ends the process, it is defined in msvcrt.dll
+     8                                          ; msvcrt.dll contains exit, printf and all the other important C-runtime functions
+     9                                  segment  data use32 class=data ; the data segment where the variables are declared 
+    10 00000000 0E                      	a  db 0Eh    ;14
+    11 00000001 0F01                    	b  dw 10Fh    ;271
+    12 00000003 01000100                    c  dd 10001h ;65537
+    13 00000007 849E000000000000            d  dq 9E84h  ;40580
+    14                                      ;(c-b+a)-(d+a)  / (65537-271+14)-(40580+14)=65280-40594=24686 = 606Eh
+    15                                  segment  code use32 class=code ; code segment
+    16                                  start: 
+    17 00000000 A1[03000000]            mov EAX,[c]         ;EAX = 00010001
+    18 00000005 B900000000              mov ECX,0h          ;ECX = 00000000
+    19 0000000A 668B0D[01000000]        mov CX,[b]          ;ECX = 0000010F
+    20 00000011 29C8                    sub EAX,ECX         ;EAX = 0000FEF2  / EAX = c-b
+    21 00000013 B900000000              mov ECX,0h          ;ECX = 00000000
+    22 00000018 8A0D[00000000]          mov CL,[a]          ;ECX = 0000000E
+    23 0000001E 01C8                    add EAX,ECX         ;EAX = 0000FF00  / EAX = c-b+a
+    24 00000020 BA00000000              mov EDX,0h
+    25 00000025 7302                    jnc here ; We turn our double from EAX into a quad on EDX:EAX and in case we have a carry we add that to EDX 
+    26 00000027 42                      inc EDX
+    27 00000028 F8                      clc
+    28                                  here:
+    29 00000029 B900000000              mov ECX,0h          ;ECX = 00000000
+    30 0000002E 8A0D[00000000]          mov CL,[a]          ;ECX = 0000000E
+    31 00000034 030D[07000000]          add ECX,dword [d]   ;ECX = 00009E92    We split the quad in d into EBX:ECX
+    32 0000003A 8B1D[0B000000]          mov EBX,dword [d+4] ;EBX = 00000000
+    33 00000040 7302                    jnc here2 ; In case we have a carry from the add above we add it to EBX
+    34 00000042 43                      inc EBX
+    35 00000043 F8                      clc
+    36                                  here2:
+    37 00000044 29C8                    sub EAX,ECX        ;EAX = 0000606E   In case this sub needs a borrow we make the next sub a sbb 
+    38 00000046 19DA                    sbb EDX,EBX        ;EDX = 00000000
+    39                                  ; So our result is the quad on EDX:EAX  

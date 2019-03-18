@@ -1,0 +1,44 @@
+     1                                  bits 32 ;assembling for the 32 bits architecture
+     2                                  ; the start label will be the entry point in the program
+     3                                  global  start 
+     4                                  
+     5                                  extern  exit ; we inform the assembler that the exit symbol is foreign, i.e. it exists even if we won't be defining it
+     6                                  
+     7                                  import  exit msvcrt.dll; exit is a function that ends the process, it is defined in msvcrt.dll
+     8                                          ; msvcrt.dll contains exit, printf and all the other important C-runtime functions
+     9                                  segment  data use32 class=data ; the data segment where the variables are declared 
+    10 00000000 09                      	a  db 9     ; 0009h
+    11 00000001 2B00                    	b  dw 43    ; 002Bh
+    12 00000003 29FFFFFF                    c  dd -215  ; FF29h
+    13 00000007 CDFEFFFFFFFFFFFF            d  dq -307  ; FECDh
+    14                                      ;(c-d-a)+(b+b)-(c+a)  / (-215- -307 -9)+(43+43)-(-215+9)= 83 + 86 - -206  = 375 = 0177h
+    15                                  segment  code use32 class=code ; code segment
+    16                                  start: 
+    17 00000000 A1[03000000]            mov EAX,[c]             ; EAX = FFFF FF29
+    18 00000005 99                      cdq                     ; EDX = FFFF FFFF   EAX = FFFF FF29
+    19 00000006 8B0D[07000000]          mov ECX,dword [d]       ; ECX = FFFF FECD 
+    20 0000000C 8B1D[0B000000]          mov EBX,dword [d+4]     ; EBX = FFFF FFFF
+    21 00000012 29C8                    sub EAX,ECX             ; EAX = 0000 005C
+    22 00000014 19DA                    sbb EDX,EBX             ; EDX = 0000 0000   EDX:EAX = c-d                 
+    23 00000016 89C1                    mov ECX,EAX             ; ECX = 0000 005C
+    24 00000018 89D3                    mov EBX,EDX             ; EBX = 0000 0000   EBX:ECX = c-d
+    25 0000001A A0[00000000]            mov AL,[a]              ; EAX = 0000 0009
+    26 0000001F 6698                    cbw                     ; EAX = 0000 0009
+    27 00000021 98                      cwde                    ; EAX = 0000 0009
+    28 00000022 99                      cdq                     ; EDX = 0000 0000   EAX = 0000 0009
+    29 00000023 29C1                    sub ECX,EAX             ; ECX = 0000 0053
+    30 00000025 19D3                    sbb EBX,EDX             ; EBX = 0000 0000   EBX:ECX = c-d-a
+    31 00000027 66A1[01000000]          mov AX,[b]              ; EAX = 0000 002B
+    32 0000002D 660305[01000000]        add AX,[b]              ; EAX = 0000 0056   EAX = b+b
+    33 00000034 98                      cwde                    ; EAX = 0000 0000
+    34 00000035 99                      cdq                     ; EDX = 0000 0000   EAX = 0000 0056    EDX:EAX = b+b
+    35 00000036 11C1                    adc ECX,EAX             ; ECX = 0000 00A9
+    36 00000038 11D3                    adc EBX,EDX             ; EBX = 0000 0000   EBX:ECX = (c-d-a) + (b+b)
+    37 0000003A A0[00000000]            mov AL,[a]              ; EAX = 0000 0009
+    38 0000003F 6698                    cbw                     ; EAX = 0000 0009
+    39 00000041 98                      cwde                    ; EAX = 0000 0009
+    40 00000042 0305[03000000]          add EAX,[c]             ; EAX = FFFF FF32
+    41 00000048 99                      cdq                     ; EDX = FFFF FFFF   EAX = FFFF FF32     EDX:EAX = c+a
+    42 00000049 19C1                    sbb ECX,EAX             ; ECX = 0000 0177
+    43 0000004B 19D3                    sbb EBX,EDX             ; EBX = 0000 0000
+    44                                  ;Our result is given by EBX:ECX which holds (c-d-a) + (b+b) - (c+a)

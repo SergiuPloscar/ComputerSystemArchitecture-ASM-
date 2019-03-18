@@ -1,0 +1,36 @@
+     1                                  bits 32 ;assembling for the 32 bits architecture
+     2                                  ; the start label will be the entry point in the program
+     3                                  global  start 
+     4                                  
+     5                                  extern  exit ; we inform the assembler that the exit symbol is foreign, i.e. it exists even if we won't be defining it
+     6                                  
+     7                                  import  exit msvcrt.dll; exit is a function that ends the process, it is defined in msvcrt.dll
+     8                                          ; msvcrt.dll contains exit, printf and all the other important C-runtime functions
+     9                                  segment  data use32 class=data ; the data segment where the variables are declared 
+    10 00000000 14                      	a  db 14h  ; 20
+    11 00000001 1E                      	b  db 1Eh  ; 30
+    12 00000002 0D                          c  db 0Dh  ; 13
+    13 00000003 2C01                        d  dw 12Ch ; 300
+    14                                      ; d+[(a+b)*5-(c+c)*5)]   / 300+[(20+30)*5 -(13+13)*5] = 300 + [ 250 - 130 ] = 420 = 01A4h
+    15                                  segment  code use32 class=code ; code segment
+    16                                  start: 
+    17 00000000 66B80000                mov AX,0h   ;AX=0000
+    18 00000004 A0[00000000]            mov AL,[a]  ;AX=0014
+    19 00000009 0205[01000000]          add AL,[b]  ;AX=0032   AX = a+b
+    20 0000000F 6683D000                adc AX,0h   ;AX=0032
+    21 00000013 66BA0500                mov DX,5h   ;DX=0005
+    22 00000017 66F7E2                  mul DX      ;DX=0000   AX = 00FA   DX:AX = (a+b)*5
+    23 0000001A 6689D3                  mov BX,DX   ;BX=0000
+    24 0000001D 6689C1                  mov CX,AX   ;CX=00FA               BX:CX = (a+b)*5
+    25 00000020 66B80000                mov AX,0h   ;AX=0000
+    26 00000024 A0[02000000]            mov AL,[c]  ;AX=000D
+    27 00000029 0205[02000000]          add AL,[c]  ;AX=001A
+    28 0000002F 66BA0500                mov DX,5h   ;DX=0005
+    29 00000033 66F7E2                  mul DX      ;DX=0000   AX=0082     DX:AX =(c+c)*5
+    30 00000036 6629C1                  sub CX,AX   ;CX=0078
+    31 00000039 6619D3                  sbb BX,DX   ;BX=0000               BX:CX = (a+b)*5 - (c+c)*5
+    32 0000003C 66030D[03000000]        add CX,[d]  ;CX=01A4               BX:CX = d+[(a+b)*5-(c+c)*5)]
+    33 00000043 7302                    jnc here    ;In case we have a carry we add it to the higher registry in the pair containing the result
+    34 00000045 6643                    inc BX
+    35                                  here:
+    36                                  

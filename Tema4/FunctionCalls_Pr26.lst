@@ -1,0 +1,48 @@
+     1                                  bits 32
+     2                                  global start        
+     3                                  
+     4                                  ; declaring extern functions used in the program
+     5                                  extern exit, printf, scanf            
+     6                                  import exit msvcrt.dll     
+     7                                  import printf msvcrt.dll     ; indicating to the assembler that the printf fct can be found in the msvcrt.dll library
+     8                                  import scanf msvcrt.dll      ; similar for scanf
+     9                                                            
+    10                                  segment  data use32 class=data
+    11 00000000 00000000                	a dd 0                              ;First keyboard input
+    12 00000004 00000000                	b dd 0                              ;Second keyboard input
+    13                                      k equ 2                             ;The constant
+    14 00000008 613D00                      message1 db "a=", 0                 ;Message for first input
+    15 0000000B 623D00                      message2 db "b=", 0                 ;Message for second input
+    16 0000000E 256400                      format1  db "%d", 0                 ;We take the inputs as decimal numbers
+    17 00000011 28612D62292A32203D-     	format2  db "(a-b)*2 = %Xh", 0       ;The result will be the hexa value of the operation
+    17 0000001A 2025586800         
+    18                                      
+    19                                  segment  code use32 class=code
+    20                                      start:
+    21 00000000 68[08000000]                push dword message1                 ;We print "a=" on the screen 
+    22 00000005 FF15[00000000]              call [printf]
+    23 0000000B 83C404                      add ESP,4                           ;Reseting the stack pointer
+    24 0000000E 68[00000000]                push dword a                        ;We take the value of a from the keyboard as a decimal value
+    25 00000013 68[0E000000]                push dword format1
+    26 00000018 FF15[00000000]              call [scanf]
+    27 0000001E 83C408                      add ESP, 4*2                        ;Reseting the stack pointer
+    28 00000021 B800000000                  mov EAX,0                           ;We empty EAX to prepare our result and store our first value in AL 
+    29 00000026 A0[00000000]                mov AL,[a]
+    30 0000002B 60                          PUSHAD                              ;We save the values of the registries 
+    31 0000002C 68[0B000000]                push dword message2                 ;We print "b=" on the screen
+    32 00000031 FF15[00000000]              call [printf]
+    33 00000037 83C404                      add ESP,4                           ;Reseting the stack pointer
+    34 0000003A 68[04000000]                push dword b                        ;We take the value of b from the keyboard as a decimal value
+    35 0000003F 68[0E000000]                push dword format1
+    36 00000044 FF15[00000000]              call [scanf]    
+    37 0000004A 83C408                      add ESP, 4*2                        ;Reseting the stack pointer
+    38 0000004D 61                          POPAD                               ;We restore our registries to the values we saved before
+    39 0000004E 662B05[04000000]            sub AX,[b]                          ;We perform a-b in AX
+    40 00000055 8D0400                      lea eax,[eax*k]                     ;We perform (a-b)*k and move it to EAX
+    41 00000058 50                          push dword EAX                      ;We prepare to print our result
+    42 00000059 68[11000000]                push dword format2
+    43 0000005E FF15[00000000]              call [printf]                       ;We print the result of our operation in hexa
+    44 00000064 83C408                      add ESP, 4*2                        ;Reseting the stack pointer
+    45 00000067 6A00                        push dword 0
+    46 00000069 FF15[00000000]              call[exit]
+    47                                      

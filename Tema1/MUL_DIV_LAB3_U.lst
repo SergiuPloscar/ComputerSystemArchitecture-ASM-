@@ -1,0 +1,47 @@
+     1                                  bits 32 ;assembling for the 32 bits architecture
+     2                                  ; the start label will be the entry point in the program
+     3                                  global  start 
+     4                                  
+     5                                  extern  exit ; we inform the assembler that the exit symbol is foreign, i.e. it exists even if we won't be defining it
+     6                                  
+     7                                  import  exit msvcrt.dll; exit is a function that ends the process, it is defined in msvcrt.dll
+     8                                          ; msvcrt.dll contains exit, printf and all the other important C-runtime functions
+     9                                  segment  data use32 class=data ; the data segment where the variables are declared 
+    10 00000000 0A00                    	a  dw 10   ; Ah
+    11 00000002 14                      	b  db 20   ; 14h
+    12 00000003 0200                        c  dw 2    ; 2h
+    13 00000005 3A010000                    d  dd 314  ; 13Ah
+    14 00000009 0801000000000000            x  dq 264  ; 108h
+    15                                      ;(a*a+b/c-1)/(b+c)+d-x /  (10*10+20/2-1)/(20+2)+314-264 = (100+10-1)/(22) + 50 = 109/22 + 50 = 4+50 = 54
+    16                                  segment  code use32 class=code ; code segment
+    17                                  start: 
+    18 00000000 66A1[00000000]          mov AX,[a]              ;AX=000A
+    19 00000006 66F7E0                  mul AX                  ;DX=0000 AX=0064      DX:AX = a*a
+    20 00000009 BB00000000              mov EBX,0h              ;EBX = 0000 0000
+    21 0000000E B900000000              mov ECX,0h              ;ECX = 0000 0000
+    22 00000013 6689D3                  mov BX,DX               ;EBX = 0000 0000
+    23 00000016 6689C1                  mov CX,AX               ;ECX = 0000 0064      EBX:ECX = a*a
+    24 00000019 BA00000000              mov EDX,0h              ;EDX = 0000 0000
+    25 0000001E B800000000              mov EAX,0h              ;EAX = 0000 0000
+    26 00000023 A0[02000000]            mov AL,[b]              ;EAX = 0000 0014
+    27 00000028 668B35[03000000]        mov SI,[c]              ;SI = 0002
+    28 0000002F 66F7F6                  div SI                  ;AX=000A              AX = b/c
+    29 00000032 6648                    dec AX                  ;AX=0009              AX = b/c - 1
+    30 00000034 01C1                    add ECX,EAX             ;ECX = 0000 006D
+    31 00000036 11D3                    adc EBX,EDX             ;EBX = 0000 0000      EBX:ECX = (a*a + b/c - 1)
+    32 00000038 89DA                    mov EDX,EBX             ;EDX = 0000 0000
+    33 0000003A 89C8                    mov EAX,ECX             ;EAX = 0000 006D      EDX:EAX = (a*a + b/c - 1)
+    34 0000003C BB00000000              mov EBX,0h              ;EBX = 0000 0000
+    35 00000041 8A1D[02000000]          mov BL,[b]              ;EBX = 0000 0014
+    36 00000047 66031D[03000000]        add BX,[c]              ;EBX = 0000 0016      EBX = b+c
+    37 0000004E F7F3                    div EBX                 ;EAX = 0000 0004      EAX = (a*a + b/c - 1)/(b+c)
+    38 00000050 BA00000000              mov EDX,0h              ;EDX = 0000 0000
+    39 00000055 BB00000000              mov EBX,0h              ;EBX = 0000 0000
+    40 0000005A 8B0D[05000000]          mov ECX,[d]             ;ECX = 0000 013A
+    41 00000060 01C8                    add EAX,ECX             ;EAX = 0000 013E
+    42 00000062 11DA                    adc EDX,EBX             ;EDX = 0000 0000      EDX:EAX = (a*a + b/c - 1)/(b+c)+d
+    43 00000064 8B0D[09000000]          mov ECX,dword [x]       ;ECX = 0000 0108
+    44 0000006A 8B1D[0D000000]          mov EBX,dword [x+4]     ;EBX = 0000 0000
+    45 00000070 29C8                    sub EAX,ECX             ;EAX = 0000 0036
+    46 00000072 19DA                    sbb EDX,EBX             ;EDX = 0000 0000      EDX:EAX = (a*a + b/c - 1)/(b+c)+d-x
+    47                                  
